@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:
+// SPDX-License-Identifier: MIT
 
 //! This module provides wrapper functions to request operations from the Nitro Secure Module (NSM) driver.
 

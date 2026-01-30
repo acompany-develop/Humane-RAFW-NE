@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:
+// SPDX-License-Identifier: MIT
 
 use anyhow::{Result, anyhow};
 use aws_lc_rs::rand::SecureRandom;
