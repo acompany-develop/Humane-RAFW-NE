@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:
+// SPDX-License-Identifier: MIT
 
 //! Nitro Enclaves attestation document verification.
 

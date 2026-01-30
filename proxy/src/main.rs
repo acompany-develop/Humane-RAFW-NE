@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:
+// SPDX-License-Identifier: MIT
 
 //! HTTP -> vsock proxy (untrusted). Forwards request body bytes to the enclave vsock server and returns response bytes.
 

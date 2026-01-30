@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:
+// SPDX-License-Identifier: MIT
 
 //! This module provides a handler for the vsock connection with the parent VM.
 

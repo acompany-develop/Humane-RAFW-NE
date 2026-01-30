@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:
+// SPDX-License-Identifier: MIT
 
 //! Cryptographic helpers for the enclave protocol.
 

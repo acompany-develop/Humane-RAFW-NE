@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:
+// SPDX-License-Identifier: MIT
 
 use anyhow::{Result, anyhow};
 use p256::elliptic_curve::rand_core::OsRng;
