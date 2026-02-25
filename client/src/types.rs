@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+//! This module provides public types.
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
