@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+//! This is the main client program.
+
 use anyhow::{Result, anyhow};
 use p256::elliptic_curve::rand_core::OsRng;
 use p256::{EncodedPoint, PublicKey, SecretKey, ecdh::diffie_hellman};

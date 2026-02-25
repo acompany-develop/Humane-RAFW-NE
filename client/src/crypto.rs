@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+//! Cryptographic helpers for the client protocol.
+
 use anyhow::{Result, anyhow};
 use aws_lc_rs::rand::SecureRandom;
 use aws_lc_rs::{aead, digest, hmac, rand};

@@ -4,7 +4,7 @@
 ![MSRV](https://img.shields.io/badge/MSRV-1.90.0-blue)
 [![License](https://img.shields.io/badge/License-MIT-red)](/LICENSE)
 
-This repository demonstrates a simple end-to-end flow against an AWS Nitro Enclave: **ECDH key exchange & attestation verification → confidential computation (example: adding two integers)**.
+This repository demonstrates a simple end-to-end flow against an AWS Nitro Enclave: **ECDH key exchange & attestation verification → confidential computing (example: adding two integers)**.
 
 - **Parent VM**: An AWS EC2 instance (Ubuntu 24.04) with Nitro Enclaves enabled. Runs the Enclave and the vsock proxy.
 - **Client**: Can run on any machine.
@@ -14,7 +14,7 @@ This repository demonstrates a simple end-to-end flow against an AWS Nitro Encla
 ### Server (Parent VM)
 
 - **Cloud Platform**: AWS
-- **Instance type**: any Nitro Enclaves capable instance
+- **Instance type**: any Nitro Enclaves capable EC2 instance
   - See [Parent instance requirements](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html#nitro-enclave-reqs)
   - Both x86_64 and AArch64 are supported
 - **AMI**: Ubuntu Server 24.04 LTS
@@ -28,7 +28,7 @@ The client code is architecture-independent. Ideally, it should be usable in any
 
 Tested on the Parent VM environments listed below. For ease of testing, the Server (vsock proxy) runs on localhost (`127.0.0.1:8080`) on the Parent VM, and the Client also runs on the same Parent VM.
 
-### Parent VM (AWS EC2)
+### Parent VM (AWS EC2 instance)
 
 #### Ubuntu 24.04 (x86_64)
 
@@ -61,10 +61,6 @@ Tested on the Parent VM environments listed below. For ease of testing, the Serv
 - **OS**: Ubuntu 24.04
 - **Allocated vCPUs**: 2
 - **Allocated Memory**: 512 MiB
-
-### Client
-
-Same as the parent VM.
 
 ## Architecture
 
