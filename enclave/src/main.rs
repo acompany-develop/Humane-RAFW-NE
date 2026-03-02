@@ -102,12 +102,12 @@ pub(crate) fn handle_vsock_stream(stream: &mut VsockStream, max_request_size: us
 
                 let shared = session::ecdh_shared_secret(enclave_priv, &client_pub)?;
 
-                let ck = crypto::derive_key(&shared, b"CK");
+                let sk = crypto::derive_key(&shared, b"SK");
                 let mk = crypto::derive_key(&shared, b"MK");
                 let vk = crypto::derive_key(&shared, b"VK");
 
                 sess.client_pub = Some(client_pub);
-                sess.ck = Some(ck);
+                sess.sk = Some(sk);
                 sess.mk = Some(mk);
                 sess.vk = Some(vk);
 
@@ -131,10 +131,10 @@ pub(crate) fn handle_vsock_stream(stream: &mut VsockStream, max_request_size: us
             }
             types::Request::Add { session_id, x, y } => {
                 let sess = session::get_session(&session_id)?;
-                let ck = sess
-                    .ck
+                let sk = sess
+                    .sk
                     .as_ref()
-                    .ok_or_else(|| anyhow::anyhow!("CK not set"))?;
+                    .ok_or_else(|| anyhow::anyhow!("SK not set"))?;
                 let mk = sess
                     .mk
                     .as_ref()
@@ -145,8 +145,8 @@ pub(crate) fn handle_vsock_stream(stream: &mut VsockStream, max_request_size: us
                 let y_nonce = crypto::b64_decode(&y.nonce_b64)?;
                 let y_ct = crypto::b64_decode(&y.ciphertext_b64)?;
 
-                let x_pt = crypto::aes128gcm_decrypt(&ck[..16], &x_nonce, &x_ct)?;
-                let y_pt = crypto::aes128gcm_decrypt(&ck[..16], &y_nonce, &y_ct)?;
+                let x_pt = crypto::aes128gcm_decrypt(&sk[..16], &x_nonce, &x_ct)?;
+                let y_pt = crypto::aes128gcm_decrypt(&sk[..16], &y_nonce, &y_ct)?;
                 let x_u32 = crypto::u32_from_le_bytes(&x_pt)?;
                 let y_u32 = crypto::u32_from_le_bytes(&y_pt)?;
 

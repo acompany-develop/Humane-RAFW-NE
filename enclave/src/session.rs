@@ -20,7 +20,7 @@ pub(crate) struct Session {
     pub client_pub: Option<Vec<u8>>,
 
     /// 32-byte derived keys (we use first 16 bytes as AES-128 key).
-    pub ck: Option<Vec<u8>>,
+    pub sk: Option<Vec<u8>>,
     pub mk: Option<Vec<u8>>,
     pub vk: Option<Vec<u8>>,
 }
@@ -68,7 +68,7 @@ pub(crate) fn new_session() -> Result<Session> {
         enclave_priv: Some(privkey),
         enclave_pub: pubkey,
         client_pub: None,
-        ck: None,
+        sk: None,
         mk: None,
         vk: None,
     })
@@ -101,7 +101,7 @@ pub(crate) fn get_session(session_id: &str) -> Result<Session> {
             enclave_priv: None,
             enclave_pub: s.enclave_pub.clone(),
             client_pub: s.client_pub.clone(),
-            ck: s.ck.clone(),
+            sk: s.sk.clone(),
             mk: s.mk.clone(),
             vk: s.vk.clone(),
         })

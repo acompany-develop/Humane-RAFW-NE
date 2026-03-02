@@ -84,7 +84,7 @@ fn main() -> Result<()> {
     let shared = diffie_hellman(client_priv.to_nonzero_scalar(), enclave_pub.as_affine());
     let shared = shared.raw_secret_bytes().to_vec();
 
-    let ck = crypto::derive_key(&shared, b"CK");
+    let sk = crypto::derive_key(&shared, b"SK");
     let mk = crypto::derive_key(&shared, b"MK");
     let vk = crypto::derive_key(&shared, b"VK");
 
@@ -130,7 +130,7 @@ fn main() -> Result<()> {
     .map_err(|e| anyhow!("attestation verification failed: {e}"))?;
     println!("attestation verification: OK");
 
-    // 5. Encrypt and send add request (100 + 200) using CK, receive sum encrypted with MK
+    // 5. Encrypt and send add request (100 + 200) using SK, receive sum encrypted with MK
     let x: u32 = 100;
     let y: u32 = 200;
     println!("plaintext x={x}, y={y}");
@@ -138,8 +138,8 @@ fn main() -> Result<()> {
     let x_nonce = crypto::random_bytes(12)?;
     let y_nonce = crypto::random_bytes(12)?;
 
-    let x_ct = crypto::aes128gcm_encrypt(&ck[..16], &x_nonce, &x.to_le_bytes())?;
-    let y_ct = crypto::aes128gcm_encrypt(&ck[..16], &y_nonce, &y.to_le_bytes())?;
+    let x_ct = crypto::aes128gcm_encrypt(&sk[..16], &x_nonce, &x.to_le_bytes())?;
+    let y_ct = crypto::aes128gcm_encrypt(&sk[..16], &y_nonce, &y.to_le_bytes())?;
     println!(
         "encrypted x_ct_b64={}, y_ct_b64={}",
         crypto::b64_encode(&x_ct),
