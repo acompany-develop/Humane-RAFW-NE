@@ -4,10 +4,7 @@
 ![MSRV](https://img.shields.io/badge/MSRV-1.90.0-blue)
 [![License](https://img.shields.io/badge/License-MIT-red)](/LICENSE)
 
-This repository demonstrates a simple end-to-end flow against an AWS Nitro Enclave: **ECDH key exchange & attestation verification → confidential computing (example: adding two integers)**.
-
-- **Parent VM**: An AWS EC2 instance (Ubuntu 24.04) with Nitro Enclaves enabled. Runs the Enclave and the vsock proxy.
-- **Client**: Can run on any machine.
+This repository demonstrates a simple end-to-end flow against an AWS Nitro Enclave: **ECDH key exchange & attestation verification → secure computing (example: adding two integers)**.
 
 ## Compatibility
 
@@ -26,7 +23,7 @@ The client code is architecture-independent. Ideally, it should be usable in any
 
 ## Tested environments
 
-Tested on the Parent VM environments listed below. For ease of testing, the Server (vsock proxy) runs on localhost (`127.0.0.1:8080`) on the Parent VM, and the Client also runs on the same Parent VM.
+Tested on the Parent VM environments listed below. For ease of testing, the Server (vsock proxy) runs on localhost (`127.0.0.1:8080`) on the Parent VM, and the Client was also run on the same Parent VM. In a typical deployment, the Client can run on a different machine and connect to the Proxy over the network.
 
 ### Parent VM (AWS EC2 instance)
 
@@ -58,7 +55,7 @@ Tested on the Parent VM environments listed below. For ease of testing, the Serv
 
 ### Nitro Enclave (inside the parent VM)
 
-- **OS**: Ubuntu 24.04
+- **OS**: Debian 12
 - **Allocated vCPUs**: 2
 - **Allocated Memory**: 512 MiB
 
@@ -72,34 +69,29 @@ By default, the proxy listens on localhost `127.0.0.1:8080`. See [Configuration]
 
 ## Quick start
 
-Clone the repository:
+Clone the repository on the Parent VM (and also on the client machine if you run the client elsewhere):
 
 ```bash
-git clone <THIS_REPOSITORY>
-cd <THIS_REPOSITORY>
+git clone https://github.com/acompany-develop/Humane-RAFW-NE
+cd Humane-RAFW-NE
 ```
 
-### 1. Parent VM setup
+### Server side
+
+#### 1. Parent VM setup
 
 ```bash
 make setup-docker
 make setup-nitro-cli
 ```
 
-### 2. Client setup
-
-```bash
-make setup-client
-make download-root-ca
-```
-
-### 3. Build the Enclave image and copy PCRs into `client-configs.json`
+#### 2. Build the Enclave image
 
 ```bash
 make build-enclave
 ```
 
-When you run `make build-enclave`, PCR measurements are printed like this (example):
+When you run `make build-enclave`, reference PCR measurements are printed like this (example):
 
 ```text
 Enclave Image successfully created.
@@ -113,84 +105,129 @@ Enclave Image successfully created.
 }
 ```
 
-Copy **PCR0/1/2** into `"PCRs"` in `client-configs.json`.
+Distribute these reference measurements to the client.
 
-### 4. Build the vsock proxy
+#### 3. Build the vsock proxy
 
 ```bash
 make build-proxy
 ```
 
-### 5. Start the Enclave
+#### 4. Start the Enclave
 
 ```bash
 make run-enclave
 ```
 
-### 6. Start the vsock proxy
+#### 5. Start the vsock proxy
 
 ```bash
 make run-proxy
 ```
 
-### 7. Build and run the client
+### Client side
+
+#### 1. Client setup
+
+```bash
+make setup-client
+```
+
+#### 2. Configure the client app
+
+Download AWS Nitro Enclaves root certificate:
+
+```bash
+make download-root-ca
+```
+
+This creates `root.pem` in the repository root, which the client uses for attestation certificate chain verification.
+
+Copy the reference **PCR0/1/2** values into `"PCRs"` in `client-configs.json`.
+
+#### 3. Build the client
 
 ```bash
 make build-client
+```
+
+#### 4. Run the client
+
+```bash
 make run-client
 ```
 
 After ECDH key exchange and attestation verification, the client calls the Enclave’s “add two integers” API and then closes the session.
 
-### 8. Stop the Enclave
+### Cleanup
+
+#### Terminate the Enclave
 
 ```bash
 make terminate-enclave
+```
+
+#### Delete Docker image
+
+```bash
+docker rmi rafwne-enclave
 ```
 
 ## Configuration
 
 ### Proxy arguments
 
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `--ip` | HTTP server bind IP | `127.0.0.1` |
-| `--port` | HTTP server port | `8080` |
-| `--cid` | Enclave CID | `16` |
-| `--vsock-port` | vsock port | `5000` |
-| `--vsock-buffer-size` | Buffer size (bytes) | `8192` |
+| Argument               | Description           | Default     |
+| ---------------------- | --------------------- | ----------- |
+| `--ip`                 | HTTP server bind IP   | `127.0.0.1` |
+| `--port`               | HTTP server port      | `8080`      |
+| `--cid`                | Enclave CID           | `16`        |
+| `--vsock-port`         | vsock port            | `5000`      |
+| `--vsock-buffer-size`  | Buffer size (bytes)   | `8192`      |
 
 ### Enclave arguments
 
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `--vsock-port` | vsock port | `5000` |
-| `--vsock-buffer-size` | Buffer size (bytes) | `8192` |
+| Argument              | Description         | Default |
+| --------------------- | ------------------- | ------- |
+| `--vsock-port`        | vsock port          | `5000`  |
+| `--vsock-buffer-size` | Buffer size (bytes) | `8192`  |
 
 ### Client configuration (`client-configs.json`)
 
-- `"server-ip"`: Proxy IP address
-- `"server-port"`: Proxy port
-- `"PCRs"`: Expected PCR values (copy from `make build-enclave` output)
-- `"print-attestation-json"`: Print attestation document as JSON if `true`
+| Field                      | Description                                 | Default     |
+| -------------------------- | ------------------------------------------- | ----------- |
+| `"server-ip"`              | Proxy IP address                            | `127.0.0.1` |
+| `"server-port"`            | Proxy port                                  | `8080`      |
+| `"PCRs"`                   | Expected PCR0/1/2 values (hex)              | —           |
+| `"print-attestation-json"` | Print attestation document as JSON if `true`| `true`      |
 
-## Customisation
+For `"PCRs"`, copy the reference measurements printed by `make build-enclave`. Note that rebuilding the enclave image will change PCR values.
 
-### Change Proxy IP / port
+### Enclave allocator configuration (`/etc/nitro_enclaves/allocator.yaml`)
 
-- Update `SERVER_IP` / `SERVER_PORT` in `Makefile`
-- Update `"server-ip"` / `"server-port"` in `client-configs.json`
+| Field        | Description                         | Default |
+| ------------ | ----------------------------------- | ------- |
+| `memory_mib` | Allocated memory for enclaves (MiB) | `512`   |
+| `cpu_count`  | Reserved CPU count for enclaves     | `2`     |
+| `cpu_pool`   | Reserved CPU IDs for enclaves       | —       |
 
-If you run the client from a different machine, allow inbound access to `SERVER_PORT` in the Parent VM security group / firewall rules.
+#### Notes
 
-### Change Enclave Memory / vCPU Allocation
+- `cpu_count` conflicts with `cpu_pool`.
+- Example `cpu_pool` values: `1,2,3,5-7`.
 
-- **Update Makefile variables**
-  - `ENCLAVE_MEMORY` (MiB)
-  - `ENCLAVE_CPU_COUNT`
-- **Update allocator config**
-  - Update `/etc/nitro_enclaves/allocator.yaml` accordingly
-- **Restart the allocator**
+- To reflect changes, restart the Nitro Enclaves Allocator Service:
+
   ```bash
   sudo systemctl restart nitro-enclaves-allocator.service
   ```
+
+### Parameters in `Makefile`
+
+| Variable            | Description                    | Default     |
+| ------------------- | ------------------------------ | ----------- |
+| `ENCLAVE_CID`       | Enclave CID                    | `16`        |
+| `ENCLAVE_MEMORY`    | Allocated memory for enclaves  | `512`       |
+| `ENCLAVE_CPU_COUNT` | Reserved CPU count for enclaves| `2`         |
+| `SERVER_IP`         | HTTP server bind IP            | `127.0.0.1` |
+| `SERVER_PORT`       | HTTP server port               | `8080`      |
