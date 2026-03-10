@@ -4,7 +4,8 @@
 ![MSRV](https://img.shields.io/badge/MSRV-1.90.0-blue)
 [![License](https://img.shields.io/badge/License-MIT-red)](/LICENSE)
 
-This repository demonstrates a simple end-to-end flow against an AWS Nitro Enclave: **ECDH key exchange & attestation verification → secure computing (example: adding two integers)**.
+This repository demonstrates a simple end-to-end flow against an AWS Nitro Enclave:
+**ECDH key exchange & attestation verification → secure computation**.
 
 ## Compatibility
 
@@ -15,15 +16,21 @@ This repository demonstrates a simple end-to-end flow against an AWS Nitro Encla
   - See [Parent instance requirements](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html#nitro-enclave-reqs)
   - Both x86_64 and AArch64 are supported
 - **AMI**: Ubuntu Server 24.04 LTS
-  - If you use other Linux distributions, manually setup the parent VM following the [Nitro CLI documentation](https://github.com/aws/aws-nitro-enclaves-cli)
+  - If you use other Linux distributions, manually setup the parent VM following
+    the [Nitro CLI documentation](https://github.com/aws/aws-nitro-enclaves-cli)
 
 ### Client
 
-The client code is architecture-independent. Ideally, it should be usable in any environment. It is currently only verified to work on Ubuntu (x86_64 / AArch64) and macOS (AArch64).
+The client code is architecture-independent. Ideally, it should be usable in
+any environment. It is currently only verified to work on Ubuntu (x86_64 /
+AArch64) and macOS (AArch64).
 
 ## Tested environments
 
-Tested on the Parent VM environments listed below. For ease of testing, the Server (vsock proxy) runs on localhost (`127.0.0.1:8080`) on the Parent VM, and the Client was also run on the same Parent VM. In a typical deployment, the Client can run on a different machine and connect to the Proxy over the network.
+Tested on the Parent VM environments listed below. For ease of testing, the
+Server (vsock proxy) runs on localhost (`127.0.0.1:8080`) on the Parent VM, and
+the Client was also run on the same Parent VM. In a typical deployment, the
+Client can run on a different machine and connect to the Proxy over the network.
 
 ### Parent VM (AWS EC2 instance)
 
@@ -63,13 +70,16 @@ Tested on the Parent VM environments listed below. For ease of testing, the Serv
 
 - `enclave/`: Enclave application (listens on vsock port)
 - `proxy/`: untrusted HTTP → vsock proxy (listens on HTTP, forwards to vsock port)
-- `client/`: Client app (POSTs JSON to the proxy, verifies attestation, then calls the confidential computing API)
+- `client/`: Client app (POSTs JSON to the proxy, verifies attestation, then
+  calls the secure computing API)
 
-By default, the proxy listens on localhost `127.0.0.1:8080`. See [Configuration](#configuration) to change this.
+By default, the proxy listens on localhost `127.0.0.1:8080`. See [Configuration](#configuration)
+to change this.
 
 ## Quick start
 
-Clone the repository on the Parent VM (and also on the client machine if you run the client elsewhere):
+Clone the repository on the Parent VM (and also on the client machine if you
+run the client elsewhere):
 
 ```bash
 git clone https://github.com/acompany-develop/Humane-RAFW-NE
@@ -91,7 +101,8 @@ make setup-nitro-cli
 make build-enclave
 ```
 
-When you run `make build-enclave`, reference PCR measurements are printed like this (example):
+When you run `make build-enclave`, reference PCR measurements are printed like
+this (example):
 
 ```text
 Enclave Image successfully created.
@@ -141,7 +152,8 @@ Download AWS Nitro Enclaves root certificate:
 make download-root-ca
 ```
 
-This creates `root.pem` in the repository root, which the client uses for attestation certificate chain verification.
+This creates `root.pem` in the repository root, which the client uses for
+attestation certificate chain verification.
 
 Copy the reference **PCR0/1/2** values into `"PCRs"` in `client-configs.json`.
 
@@ -157,7 +169,8 @@ make build-client
 make run-client
 ```
 
-After ECDH key exchange and attestation verification, the client calls the Enclave’s “add two integers” API and then closes the session.
+After ECDH key exchange and attestation verification, the client calls the
+Enclave's "add two integers" API and then closes the session.
 
 ### Cleanup
 
@@ -201,7 +214,8 @@ docker rmi rafwne-enclave
 | `"PCRs"`                   | Expected PCR0/1/2 values (hex)              | —           |
 | `"print-attestation-json"` | Print attestation document as JSON if `true`| `true`      |
 
-For `"PCRs"`, copy the reference measurements printed by `make build-enclave`. Note that rebuilding the enclave image will change PCR values.
+For `"PCRs"`, copy the reference measurements printed by `make build-enclave`.
+Note that rebuilding the enclave image will change PCR values.
 
 ### Enclave allocator configuration (`/etc/nitro_enclaves/allocator.yaml`)
 
