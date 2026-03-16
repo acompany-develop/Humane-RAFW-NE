@@ -3,11 +3,11 @@
 //! Nitro Enclaves attestation document verification.
 
 use anyhow::{Result, anyhow};
+use aws_lc_rs::signature;
 use aws_nitro_enclaves_cose::{CoseSign1, crypto::Openssl};
 use base64::Engine as _;
 use minicbor::Decoder;
 use openssl::x509::X509 as OpensslX509;
-use p384::ecdsa::{Signature, VerifyingKey, signature::Verifier};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use x509_parser::prelude::*;
@@ -163,14 +163,12 @@ fn x509_pubkey_sec1(cert: &X509Certificate) -> Result<Vec<u8>> {
 
 fn verify_x509_sig_ecdsa_sha384(child: &X509Certificate, parent: &X509Certificate) -> Result<()> {
     let parent_pk = x509_pubkey_sec1(parent)?;
-    let vk = VerifyingKey::from_sec1_bytes(&parent_pk)
-        .map_err(|e| anyhow!("invalid parent pubkey: {e}"))?;
+    let vk = signature::UnparsedPublicKey::new(&signature::ECDSA_P384_SHA384_ASN1, &parent_pk);
 
     let tbs = child.tbs_certificate.as_ref();
     let sig_der = child.signature_value.data.as_ref();
-    let sig = Signature::from_der(sig_der).map_err(|e| anyhow!("invalid DER signature: {e}"))?;
-    vk.verify(tbs, &sig)
-        .map_err(|e| anyhow!("certificate signature verify failed: {e}"))?;
+    vk.verify(tbs, sig_der)
+        .map_err(|_| anyhow!("certificate signature verify failed"))?;
     Ok(())
 }
 
