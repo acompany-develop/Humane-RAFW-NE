@@ -4,8 +4,8 @@
 
 use crate::{crypto, nsm};
 use anyhow::{Result, anyhow};
+use aws_lc_rs::agreement::{self, ECDH_P256};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD as B64URL};
-use p256::{EncodedPoint, PublicKey, SecretKey, ecdh::diffie_hellman};
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
@@ -13,7 +13,7 @@ pub(crate) struct Session {
     pub session_id: String,
 
     /// Stored until `KeyExchange`, then consumed.
-    pub enclave_priv: Option<SecretKey>,
+    pub enclave_priv: Option<agreement::PrivateKey>,
 
     /// Uncompressed SEC1 public keys (65 bytes).
     pub enclave_pub: Vec<u8>,
@@ -55,13 +55,16 @@ pub(crate) fn new_session() -> Result<Session> {
     // ECDH P-256 keypair (entropy from NSM)
     let privkey = loop {
         let sk_bytes = nsm_random_bytes(32)?;
-        match SecretKey::from_slice(&sk_bytes) {
-            Ok(sk) => break sk,
+        match agreement::PrivateKey::from_private_key(&ECDH_P256, &sk_bytes) {
+            Ok(pk) => break pk,
             Err(_) => continue, // retry on invalid scalar (e.g., 0/out of range)
         }
     };
-    let pubkey = privkey.public_key();
-    let pubkey = EncodedPoint::from(pubkey).to_bytes().to_vec();
+    let pubkey = privkey
+        .compute_public_key()
+        .map_err(|_| anyhow!("compute public key failed"))?
+        .as_ref()
+        .to_vec();
 
     Ok(Session {
         session_id,
@@ -140,11 +143,14 @@ pub(crate) fn session_user_data(sess: &Session) -> Result<Vec<u8>> {
 }
 
 pub(crate) fn ecdh_shared_secret(
-    enclave_priv: SecretKey,
+    enclave_priv: agreement::PrivateKey,
     client_pub_sec1: &[u8],
 ) -> Result<Vec<u8>> {
-    let client_pub = PublicKey::from_sec1_bytes(client_pub_sec1)
-        .map_err(|e| anyhow!("bad client pubkey: {e}"))?;
-    let shared = diffie_hellman(enclave_priv.to_nonzero_scalar(), client_pub.as_affine());
-    Ok(shared.raw_secret_bytes().to_vec())
+    let peer_pub = agreement::UnparsedPublicKey::new(&ECDH_P256, client_pub_sec1);
+    agreement::agree(
+        &enclave_priv,
+        peer_pub,
+        anyhow!("ECDH agreement failed"),
+        |secret| Ok(secret.to_vec()),
+    )
 }

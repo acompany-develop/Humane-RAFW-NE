@@ -3,8 +3,8 @@
 //! This is the main client program.
 
 use anyhow::{Result, anyhow};
-use p256::elliptic_curve::rand_core::OsRng;
-use p256::{EncodedPoint, PublicKey, SecretKey, ecdh::diffie_hellman};
+use aws_lc_rs::agreement::{self, ECDH_P256, EphemeralPrivateKey};
+use aws_lc_rs::rand::SystemRandom;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs;
@@ -75,14 +75,21 @@ fn main() -> Result<()> {
     let enclave_pub_bytes = crypto::b64_decode(&enclave_pub_b64)?;
 
     // 2. Client ephemeral P-256 keypair + ECDH
-    let client_priv = SecretKey::random(&mut OsRng);
-    let client_pub = client_priv.public_key();
-    let client_pub_bytes = EncodedPoint::from(client_pub).to_bytes().to_vec();
+    let rng = SystemRandom::new();
+    let client_priv = EphemeralPrivateKey::generate(&ECDH_P256, &rng)
+        .map_err(|_| anyhow!("P-256 key generation failed"))?;
+    let client_pub_key = client_priv
+        .compute_public_key()
+        .map_err(|_| anyhow!("compute public key failed"))?;
+    let client_pub_bytes = client_pub_key.as_ref().to_vec();
 
-    let enclave_pub = PublicKey::from_sec1_bytes(&enclave_pub_bytes)
-        .map_err(|e| anyhow!("bad enclave pubkey: {e}"))?;
-    let shared = diffie_hellman(client_priv.to_nonzero_scalar(), enclave_pub.as_affine());
-    let shared = shared.raw_secret_bytes().to_vec();
+    let enclave_peer = agreement::UnparsedPublicKey::new(&ECDH_P256, &enclave_pub_bytes);
+    let shared = agreement::agree_ephemeral(
+        client_priv,
+        enclave_peer,
+        anyhow!("ECDH agreement failed"),
+        |secret| Ok(secret.to_vec()),
+    )?;
 
     let sk = crypto::derive_key(&shared, b"SK");
     let mk = crypto::derive_key(&shared, b"MK");
