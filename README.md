@@ -4,8 +4,8 @@
 ![MSRV](https://img.shields.io/badge/MSRV-1.90.0-blue)
 [![License](https://img.shields.io/badge/License-MIT-red)](/LICENSE)
 
-This repository demonstrates a simple end-to-end flow against an AWS Nitro Enclave:
-**ECDH key exchange & attestation verification → secure computation**.
+This repository demonstrates a minimal end-to-end flow for AWS Nitro Enclaves:
+**ECDH key exchange → remote attestation → API call via secure channel**.
 
 ## Compatibility
 
@@ -15,7 +15,7 @@ This repository demonstrates a simple end-to-end flow against an AWS Nitro Encla
 - **Instance type**: any Nitro Enclaves capable EC2 instance
   - See [Parent instance requirements](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html#nitro-enclave-reqs)
   - Both x86_64 and AArch64 are supported
-- **AMI**: Ubuntu Server 24.04 LTS
+- **AMI**: Ubuntu 24.04 / 25.10
   - If you use other Linux distributions, manually setup the parent VM following
     the [Nitro CLI documentation](https://github.com/aws/aws-nitro-enclaves-cli)
 
@@ -68,13 +68,17 @@ Client can run on a different machine and connect to the Proxy over the network.
 
 ## Architecture
 
-- `enclave/`: Enclave application (listens on vsock port)
+Humane-RAFW-NE consists of the following components:
+
+- `enclave/` (+ `Dockerfile`): Enclave application (listens on vsock port)
 - `proxy/`: untrusted HTTP → vsock proxy (listens on HTTP, forwards to vsock port)
 - `client/`: Client app (POSTs JSON to the proxy, verifies attestation, then
-  calls the secure computing API)
+  calls the "add two integers" API)
 
 By default, the proxy listens on localhost `127.0.0.1:8080`. See [Configuration](#configuration)
 to change this.
+
+For detailed architecture documentation, see [Architecture](docs/architecture.md).
 
 ## Quick start
 
